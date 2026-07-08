@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>creatingfire.org — Orchestration Dashboard</title>
+  <style>
+    :root {
+      --bg: #0d0d0d;
+      --surface: #161616;
+      --border: #2a2a2a;
+      --accent: #f97316;
+      --accent-dim: #7c3a10;
+      --text: #e5e5e5;
+      --muted: #737373;
+      --green: #22c55e;
+      --red: #ef4444;
+      --yellow: #eab308;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: 14px;
+      min-height: 100vh;
+    }
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header h1 { font-size: 18px; font-weight: 600; letter-spacing: 0.5px; }
+    header h1 span { color: var(--accent); }
+    #status-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--muted); display: inline-block; margin-right: 8px;
+    }
+    #status-dot.ok { background: var(--green); }
+    #status-dot.err { background: var(--red); }
+    main { max-width: 960px; margin: 0 auto; padding: 24px; display: grid; gap: 24px; }
+    section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    section h2 {
+      font-size: 13px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 1px; color: var(--muted);
+      padding: 14px 20px; border-bottom: 1px solid var(--border);
+    }
+    .section-body { padding: 20px; }
+    label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    input, select, textarea {
+      width: 100%; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 6px; color: var(--text); padding: 8px 12px;
+      font-size: 13px; font-family: inherit; margin-bottom: 14px;
+      outline: none; transition: border-color 0.15s;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+    textarea { resize: vertical; min-height: 80px; font-family: 'Courier New', monospace; }
+    button {
+      background: var(--accent); color: #fff; border: none; border-radius: 6px;
+      padding: 9px 20px; font-size: 13px; font-weight: 600; cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    button:hover { opacity: 0.85; }
+    button.secondary {
+      background: transparent; border: 1px solid var(--border); color: var(--text);
+    }
+    button.secondary:hover { border-color: var(--accent); color: var(--accent); }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    #submit-result, #status-result {
+      margin-top: 14px; padding: 12px; border-radius: 6px;
+      background: var(--bg); border: 1px solid var(--border);
+      font-family: 'Courier New', monospace; font-size: 12px;
+      white-space: pre-wrap; word-break: break-all; display: none;
+    }
+    #jobs-list { list-style: none; }
+    #jobs-list li {
+      padding: 12px 0; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px;
+    }
+    #jobs-list li:last-child { border-bottom: none; }
+    .job-id { font-family: monospace; font-size: 11px; color: var(--muted); }
+    .job-domain { font-weight: 600; }
+    .badge {
+      font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .badge.complete { background: #14532d; color: var(--green); }
+    .badge.failed { background: #450a0a; color: var(--red); }
+    .badge.pending { background: #422006; color: var(--yellow); }
+    .badge.running { background: #1e3a5f; color: #60a5fa; }
+    #auth-bar {
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 10px 24px; display: flex; align-items: center; gap: 10px;
+    }
+    #auth-bar label { margin: 0; white-space: nowrap; font-size: 12px; color: var(--muted); }
+    #auth-bar input { margin: 0; flex: 1; max-width: 360px; }
+    #empty-msg { color: var(--muted); font-size: 13px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><span>creatingfire</span>.org — Orchestration</h1>
+    <div style="display:flex;align-items:center">
+      <span id="status-dot"></span>
+      <span id="status-label">Checking…</span>
+    </div>
+  </header>
+
+  <div id="auth-bar">
+    <label for="api-key">API Key</label>
+    <input type="password" id="api-key" placeholder="******" />
+    <button class="secondary" onclick="App.saveKey()">Save</button>
+  </div>
+
+  <main>
+    <!-- Submit Workflow -->
+    <section>
+      <h2>Submit Workflow</h2>
+      <div class="section-body">
+        <div class="row">
+          <div>
+            <label>Domain</label>
+            <select id="w-domain">
+              <option value="ai">AI</option>
+              <option value="marketing">Marketing</option>
+              <option value="education">Education</option>
+              <option value="system">System</option>
+            </select>
+          </div>
+          <div>
+            <label>Action</label>
+            <input type="text" id="w-action" placeholder="e.g. generate, publish, campaign" />
+          </div>
+        </div>
+        <label>Payload (JSON)</label>
+        <textarea id="w-payload">{}</textarea>
+        <button onclick="App.submitWorkflow()">Submit Job →</button>
+        <pre id="submit-result"></pre>
+      </div>
+    </section>
+
+    <!-- Check Status -->
+    <section>
+      <h2>Workflow Status</h2>
+      <div class="section-body">
+        <label>Job ID</label>
+        <input type="text" id="s-jobid" placeholder="Paste job UUID" />
+        <button onclick="App.checkStatus()">Check Status →</button>
+        <pre id="status-result"></pre>
+      </div>
+    </section>
+
+    <!-- Recent Jobs (from KV) -->
+    <section>
+      <h2>Workflow Registry</h2>
+      <div class="section-body">
+        <div style="display:flex;gap:10px;margin-bottom:14px">
+          <input type="text" id="kv-prefix" placeholder="KV prefix (default: workflow:)" style="margin:0;flex:1" />
+          <button onclick="App.loadWorkflows()">Refresh</button>
+        </div>
+        <ul id="jobs-list">
+          <li><span id="empty-msg">Click refresh to load keys</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Config Manager -->
+    <section>
+      <h2>Config Manager</h2>
+      <div class="section-body">
+        <div class="row">
+          <div>
+            <label>Key</label>
+            <input type="text" id="cfg-key" placeholder="e.g. ai.model" />
+          </div>
+          <div>
+            <label>Value (JSON)</label>
+            <input type="text" id="cfg-val" placeholder='e.g. "gpt-4o"' />
+          </div>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button onclick="App.getConfig()">Get</button>
+          <button onclick="App.setConfig()">Set</button>
+        </div>
+        <pre id="cfg-result" style="margin-top:14px;padding:12px;border-radius:6px;background:var(--bg);border:1px solid var(--border);font-family:monospace;font-size:12px;white-space:pre-wrap;display:none"></pre>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
