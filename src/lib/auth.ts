@@ -1,7 +1,7 @@
 import { Env } from './types';
 
 /**
- * Validates the ****** against the API_SECRET binding.
+ * Validates the ****** in the Authorization header against the API_SECRET binding.
  * Set the secret with: wrangler secret put API_SECRET
  */
 export function authenticate(request: Request, env: Env): boolean {

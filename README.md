@@ -25,8 +25,7 @@ No third-party restrictions. Your logic, your infrastructure.
 
 ## API
 
-All protected routes require: `Authorization: ******
-
+All protected routes require: `Authorization: Bearer <YOUR_API_SECRET>` header.
 | Method | Path | Description |
 |---|---|---|
 | GET | `/` | Service info |
@@ -43,7 +42,7 @@ All protected routes require: `Authorization: ******
 
 ```bash
 curl -X POST https://creatingfire.org/workflow \
-  -H "Authorization: ******" \
+  -H "Authorization: Bearer <YOUR_API_SECRET>" \
   -H "Content-Type: application/json" \
   -d '{"domain":"ai","action":"generate","payload":{"prompt":"..."}}'
 ```

@@ -2,6 +2,7 @@ name = "cf-orchestrator"
 main = "src/worker.ts"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
+# Your Cloudflare account ID (not a secret — safe to commit)
 account_id = "4ba8ad1a8d6edbef7ae9c7b1a80d45af"
 
 # Production routes

@@ -4,12 +4,12 @@ const BASE_URL = window.location.origin; // same-origin Worker
 
 const App = (() => {
   function getKey() {
-    return localStorage.getItem('cf_api_key') ?? '';
+    return sessionStorage.getItem('cf_api_key') ?? '';
   }
 
   function saveKey() {
     const key = document.getElementById('api-key').value.trim();
-    localStorage.setItem('cf_api_key', key);
+    sessionStorage.setItem('cf_api_key', key);
     showResult('submit-result', { saved: true });
   }
 
@@ -156,7 +156,7 @@ const App = (() => {
 
   // ── Init ────────────────────────────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', () => {
-    const stored = localStorage.getItem('cf_api_key');
+    const stored = sessionStorage.getItem('cf_api_key');
     if (stored) document.getElementById('api-key').value = stored;
     checkHealth();
     setInterval(checkHealth, 30000);
