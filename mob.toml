@@ -1,0 +1,14 @@
+# mob.sh configuration — creatingfire.org orchestration engine
+# https://mob.sh
+
+[mob]
+# Branch for mob sessions
+mob_next_stay = true
+mob_done_squash = true
+mob_require_commit_message = true
+mob_git_hooks_enabled = true
+mob_voice_command = ""
+mob_notify_command = ""
+mob_open_command = ""
+mob_timer = "25"
+mob_timer_room = "creatingfire-mob"
