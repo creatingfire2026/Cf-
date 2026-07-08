@@ -1,0 +1,59 @@
+name = "cf-orchestrator"
+main = "src/worker.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+account_id = "4ba8ad1a8d6edbef7ae9c7b1a80d45af"
+
+# Production routes
+routes = [
+  { pattern = "creatingfire.org/*", zone_name = "creatingfire.org" }
+]
+
+[vars]
+ENVIRONMENT = "production"
+
+# KV Namespace — workflow config registry
+[[kv_namespaces]]
+binding = "CF_KV"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+preview_id = "REPLACE_WITH_KV_PREVIEW_ID"
+
+# Async job queue
+[[queues.producers]]
+binding = "CF_QUEUE"
+queue = "cf-workflow-queue"
+
+[[queues.consumers]]
+queue = "cf-workflow-queue"
+max_batch_size = 10
+max_batch_timeout = 30
+max_retries = 3
+
+# R2 bucket for assets, AI outputs, educational materials
+[[r2_buckets]]
+binding = "CF_R2"
+bucket_name = "cf-assets"
+
+# Durable Objects — stateful workflow runners
+[durable_objects]
+bindings = [
+  { name = "WORKFLOW_DO", class_name = "WorkflowDurableObject" }
+]
+
+[[migrations]]
+tag = "v1"
+new_classes = ["WorkflowDurableObject"]
+
+# Cron triggers — orchestration heartbeat
+[triggers]
+crons = ["0 * * * *"]
+
+# Staging environment
+[env.staging]
+name = "cf-orchestrator-staging"
+vars = { ENVIRONMENT = "staging" }
+
+[env.staging.durable_objects]
+bindings = [
+  { name = "WORKFLOW_DO", class_name = "WorkflowDurableObject" }
+]
