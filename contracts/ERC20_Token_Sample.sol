@@ -12,7 +12,7 @@ import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC2
  *
  *      Inherited from OpenZeppelin:
  *        - transfer / transferFrom
- *        - approve / increaseAllowance / decreaseAllowance
+ *        - approve
  *        - balanceOf / allowance / totalSupply
  *        - burn / burnFrom  (ERC20Burnable, extended below)
  */

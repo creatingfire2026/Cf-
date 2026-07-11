@@ -1,7 +1,7 @@
 require("@nomicfoundation/hardhat-toolbox");
 require("dotenv").config({ path: ".env" });
 
-const PRIVATE_KEY = process.env.DEPLOYER_PRIVATE_KEY || "0x" + "0".repeat(64);
+const PRIVATE_KEY = process.env.DEPLOYER_PRIVATE_KEY;
 const RPC_URL = process.env.RPC_URL || "";
 const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY || "";
 
@@ -20,12 +20,12 @@ module.exports = {
     hardhat: {},
     mainnet: {
       url: RPC_URL,
-      accounts: [PRIVATE_KEY],
+      accounts: PRIVATE_KEY ? [PRIVATE_KEY] : [],
       chainId: 1,
     },
     sepolia: {
       url: RPC_URL,
-      accounts: [PRIVATE_KEY],
+      accounts: PRIVATE_KEY ? [PRIVATE_KEY] : [],
       chainId: 11155111,
     },
   },
