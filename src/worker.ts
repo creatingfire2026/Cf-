@@ -64,7 +64,13 @@ export default {
 
     // POST /workflow — submit a workflow job
     if (path === '/workflow' && method === 'POST') {
-      const body = await request.json<Partial<WorkflowJob>>();
+      let body: Partial<WorkflowJob> = {};
+      try {
+        body = await request.json<Partial<WorkflowJob>>();
+      } catch {
+        return json({ error: 'Invalid JSON body — make sure Content-Type is application/json' }, 400);
+      }
+
       const job: WorkflowJob = {
         id: crypto.randomUUID(),
         domain: body.domain ?? 'system',
@@ -109,7 +115,12 @@ export default {
     // POST /config/:key — write a config value
     if (path.startsWith('/config/') && method === 'POST') {
       const key = path.slice('/config/'.length);
-      const body = await request.json<unknown>();
+      let body: unknown;
+      try {
+        body = await request.json<unknown>();
+      } catch {
+        return json({ error: 'Invalid JSON body' }, 400);
+      }
       await kvSet(env, `config:${key}`, body);
       return json({ saved: true, key });
     }
