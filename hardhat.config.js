@@ -2,5 +2,5 @@ require("@nomicfoundation/hardhat-ethers");
 require("@nomicfoundation/hardhat-chai-matchers");
 
 module.exports = {
-  solidity: "0.8.20",
+  solidity: "0.8.26",
 };
