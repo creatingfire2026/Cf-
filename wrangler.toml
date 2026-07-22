@@ -12,8 +12,22 @@ routes = [
 
 [vars]
 ENVIRONMENT = "production"
+# ── Stripe Price IDs (not secrets — safe to commit) ───────────────────────────
+# Create prices in Stripe Dashboard → Products, then paste the price_xxx IDs here
+STRIPE_STARTER_PRICE_ID = "REPLACE_WITH_STRIPE_STARTER_PRICE_ID"
+STRIPE_PRO_PRICE_ID     = "REPLACE_WITH_STRIPE_PRO_PRICE_ID"
+# ── Optional: OpenAI-compatible AI gateway ────────────────────────────────────
+# e.g. https://api.openai.com/v1  or  https://gateway.ai.cloudflare.com/v1/ACCOUNT/GATEWAY/openai
+AI_GATEWAY_URL = ""
 
-# KV Namespace — workflow config registry
+# ── Secrets (set with `wrangler secret put <NAME>`) ───────────────────────────
+#   wrangler secret put API_SECRET          ← operator/admin bearer token
+#   wrangler secret put STRIPE_SECRET_KEY   ← sk_live_...
+#   wrangler secret put STRIPE_WEBHOOK_SECRET ← whsec_...
+#   wrangler secret put AI_GATEWAY_KEY      ← API key for your AI provider
+#   wrangler secret put ALERT_WEBHOOK_URL   ← Slack/Discord webhook (optional)
+
+# KV Namespace — workflow config registry + customer/billing data
 [[kv_namespaces]]
 binding = "CF_KV"
 id = "REPLACE_WITH_KV_NAMESPACE_ID"
@@ -45,14 +59,14 @@ bindings = [
 tag = "v1"
 new_classes = ["WorkflowDurableObject"]
 
-# Cron triggers — orchestration heartbeat
+# Cron triggers — hourly orchestration heartbeat + billing report
 [triggers]
 crons = ["0 * * * *"]
 
 # Staging environment
 [env.staging]
 name = "cf-orchestrator-staging"
-vars = { ENVIRONMENT = "staging" }
+vars = { ENVIRONMENT = "staging", STRIPE_STARTER_PRICE_ID = "REPLACE_WITH_STRIPE_STARTER_PRICE_ID", STRIPE_PRO_PRICE_ID = "REPLACE_WITH_STRIPE_PRO_PRICE_ID", AI_GATEWAY_URL = "" }
 
 [env.staging.durable_objects]
 bindings = [

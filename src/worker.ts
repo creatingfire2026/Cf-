@@ -1,5 +1,7 @@
 import { Env, WorkflowJob } from './lib/types';
-import { authenticate, unauthorized } from './lib/auth';
+import { authenticate, unauthorized, quotaExceeded } from './lib/auth';
+import { isQuotaExceeded, incrementUsage } from './lib/billing';
+import { createCheckoutSession } from './lib/stripe';
 import { handleWebhook } from './handlers/webhooks';
 import { consumeQueue } from './queue/consumer';
 import { log } from './lib/logger';
@@ -44,6 +46,7 @@ export default {
         version: '1.0.0',
         status: 'operational',
         env: env.ENVIRONMENT,
+        plans: { free: 100, starter: 1000, pro: 10000 },
       });
     }
 
@@ -51,15 +54,49 @@ export default {
       return json({ status: 'ok', timestamp: new Date().toISOString() });
     }
 
-    // Inbound webhooks — authenticated by X-Webhook-Source + extend with HMAC in production
+    // Inbound webhooks (Stripe + generic) — authenticated at the handler level
     if (path === '/webhook' && method === 'POST') {
       return handleWebhook(request, env);
     }
 
+    // POST /signup — create a Stripe Checkout Session and return redirect URL
+    if (path === '/signup' && method === 'POST') {
+      return handleSignup(request, env, url);
+    }
+
+    // GET /signup/success?session_id=... — retrieve provisioned API key after payment
+    if (path === '/signup/success' && method === 'GET') {
+      const sessionId = searchParams.get('session_id');
+      if (!sessionId) return json({ error: 'Missing session_id' }, 400);
+      const entry = await kvGet<{ apiKey: string; customerId: string }>(
+        env,
+        `checkout:${sessionId}`,
+      );
+      if (!entry) return json({ error: 'Session not found or expired' }, 404);
+      return json({ apiKey: entry.apiKey, customerId: entry.customerId });
+    }
+
     // ── Protected API routes ───────────────────────────────────────────────
 
-    if (!authenticate(request, env)) {
-      return unauthorized();
+    const authResult = await authenticate(request, env);
+    if (!authResult.ok) return unauthorized();
+    const { customer } = authResult;
+
+    // Quota enforcement for per-customer keys (admin bypasses quota)
+    if (customer) {
+      const exceeded = await isQuotaExceeded(env, customer);
+      if (exceeded) return quotaExceeded();
+      // Count this request against the customer's monthly quota
+      ctx.waitUntil(incrementUsage(env, customer.customerId));
+    }
+
+    // GET /me — current customer profile + usage
+    if (path === '/me' && method === 'GET') {
+      if (!customer) {
+        return json({ role: 'admin', plan: 'unlimited' });
+      }
+      const { apiKey: _key, ...safeCustomer } = customer;
+      return json(safeCustomer);
     }
 
     // POST /workflow — submit a workflow job
@@ -112,8 +149,9 @@ export default {
       return json({ key, value });
     }
 
-    // POST /config/:key — write a config value
+    // POST /config/:key — write a config value (admin only)
     if (path.startsWith('/config/') && method === 'POST') {
+      if (customer) return json({ error: 'Admin only' }, 403);
       const key = path.slice('/config/'.length);
       let body: unknown;
       try {
@@ -125,8 +163,9 @@ export default {
       return json({ saved: true, key });
     }
 
-    // POST /cron — manual cron trigger (useful for testing)
+    // POST /cron — manual cron trigger (admin only)
     if (path === '/cron' && method === 'POST') {
+      if (customer) return json({ error: 'Admin only' }, 403);
       ctx.waitUntil(runCron(env));
       return json({ triggered: true });
     }
@@ -145,15 +184,69 @@ export default {
   },
 };
 
+// ─── Sign-up handler ──────────────────────────────────────────────────────────
+
+async function handleSignup(request: Request, env: Env, url: URL): Promise<Response> {
+  let body: { email?: string; plan?: string } = {};
+  try {
+    body = await request.json();
+  } catch {
+    return new Response(JSON.stringify({ error: 'Invalid JSON body' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
+    });
+  }
+
+  const email = (body.email ?? '').trim();
+  const plan = body.plan === 'pro' ? 'pro' : 'starter';
+
+  if (!email || !email.includes('@')) {
+    return new Response(JSON.stringify({ error: 'Valid email required' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
+    });
+  }
+
+  const priceId =
+    plan === 'pro' ? env.STRIPE_PRO_PRICE_ID : env.STRIPE_STARTER_PRICE_ID;
+
+  const origin = url.origin;
+  const session = await createCheckoutSession(env, {
+    email,
+    priceId,
+    plan,
+    successUrl: `${origin}/signup/success?session_id={CHECKOUT_SESSION_ID}`,
+    cancelUrl: `${origin}/#pricing`,
+  });
+
+  log('info', 'Checkout session created', { plan, sessionId: session.id });
+  return new Response(JSON.stringify({ url: session.url }), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
+  });
+}
+
 // ─── Cron Logic ───────────────────────────────────────────────────────────────
 
 async function runCron(env: Env): Promise<void> {
   log('info', 'Cron triggered', { timestamp: new Date().toISOString() });
+
+  // Health-check job
   await env.CF_QUEUE.send({
     id: crypto.randomUUID(),
     domain: 'system',
     action: 'health-check',
     payload: { source: 'cron' },
+    createdAt: new Date().toISOString(),
+    status: 'pending',
+  });
+
+  // Monthly billing report + Stripe usage records
+  await env.CF_QUEUE.send({
+    id: crypto.randomUUID(),
+    domain: 'billing',
+    action: 'cron-report',
+    payload: {},
     createdAt: new Date().toISOString(),
     status: 'pending',
   });

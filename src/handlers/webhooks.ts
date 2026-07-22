@@ -1,11 +1,24 @@
 import { Env } from '../lib/types';
 import { log } from '../lib/logger';
+import { handleStripeWebhook } from './billing';
 
 /**
  * Inbound webhook intake — accepts payloads from external systems
  * and enqueues them for async workflow processing.
+ *
+ * Stripe events are identified by the `Stripe-Signature` header and
+ * handled synchronously (signature verification + provisioning) rather
+ * than queued, so Stripe receives a timely 200 response.
  */
 export async function handleWebhook(request: Request, env: Env): Promise<Response> {
+  // ── Stripe events ──────────────────────────────────────────────────────────
+  const stripeSignature = request.headers.get('Stripe-Signature');
+  if (stripeSignature) {
+    const rawBody = await request.text();
+    return handleStripeWebhook(rawBody, stripeSignature, env);
+  }
+
+  // ── Generic webhooks ───────────────────────────────────────────────────────
   let body: Record<string, unknown> = {};
   try {
     body = await request.json();

@@ -19,6 +19,11 @@ export interface Env {
   // ── Optional alerting ─────────────────────────────────────────────────────
   /** Slack / Discord / custom webhook URL for cron health reports */
   ALERT_WEBHOOK_URL?: string;
+  // ── AI Gateway ───────────────────────────────────────────────────────────
+  /** OpenAI-compatible base URL, e.g. https://api.openai.com/v1 */
+  AI_GATEWAY_URL?: string;
+  /** wrangler secret put AI_GATEWAY_KEY */
+  AI_GATEWAY_KEY?: string;
 }
 
 // ─── Billing ─────────────────────────────────────────────────────────────────

@@ -1,8 +1,10 @@
-// creatingfire.org — Orchestration Dashboard
+// creatingfire.org — Dashboard + Landing Page
 
 const BASE_URL = window.location.origin; // same-origin Worker
 
 const App = (() => {
+  let _signupPlan = 'starter';
+
   function getKey() {
     return sessionStorage.getItem('cf_api_key') ?? '';
   }
@@ -42,6 +44,125 @@ const App = (() => {
     } catch {
       dot.className = 'err';
       label.textContent = 'Unreachable';
+    }
+  }
+
+  // ── Sign-up flow ────────────────────────────────────────────────────────────
+  function openSignup(plan) {
+    _signupPlan = plan || 'starter';
+    const form = document.getElementById('signup-form');
+    const label = document.getElementById('signup-plan-label');
+    const result = document.getElementById('signup-result');
+    form.style.display = 'block';
+    label.textContent = `Plan: ${_signupPlan}`;
+    result.style.display = 'none';
+    result.className = '';
+    document.getElementById('signup-email').focus();
+    document.getElementById('pricing').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function closeSignup() {
+    document.getElementById('signup-form').style.display = 'none';
+  }
+
+  async function submitSignup() {
+    const email = document.getElementById('signup-email').value.trim();
+    const result = document.getElementById('signup-result');
+    const btn = document.getElementById('signup-btn');
+    if (!email || !email.includes('@')) {
+      result.className = 'error';
+      result.style.display = 'block';
+      result.textContent = 'Please enter a valid email address.';
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = 'Redirecting…';
+    result.style.display = 'none';
+    try {
+      const r = await fetch(`${BASE_URL}/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, plan: _signupPlan }),
+      });
+      const d = await r.json();
+      if (d.url) {
+        window.location.href = d.url; // redirect to Stripe Checkout
+      } else {
+        throw new Error(d.error || 'Unknown error');
+      }
+    } catch (e) {
+      result.className = 'error';
+      result.style.display = 'block';
+      result.textContent = 'Error: ' + String(e);
+      btn.disabled = false;
+      btn.textContent = 'Continue to payment →';
+    }
+  }
+
+  // ── Retrieve key after successful Stripe Checkout ───────────────────────────
+  async function retrieveKeyFromSession() {
+    const params = new URLSearchParams(window.location.search);
+    const sessionId = params.get('session_id');
+    if (!sessionId) return;
+    try {
+      const r = await fetch(`${BASE_URL}/signup/success?session_id=${encodeURIComponent(sessionId)}`);
+      const d = await r.json();
+      if (d.apiKey) {
+        sessionStorage.setItem('cf_api_key', d.apiKey);
+        document.getElementById('api-key').value = d.apiKey;
+        const meSection = document.getElementById('me-section');
+        meSection.innerHTML = `
+          <p style="color:var(--green);font-weight:600;margin-bottom:12px">✓ Payment successful! Your API key is ready.</p>
+          <label>Your API Key (save this somewhere safe)</label>
+          <input type="text" value="${d.apiKey}" readonly onclick="this.select()"
+            style="font-family:monospace;font-size:12px;letter-spacing:0.5px" />
+          <p style="color:var(--muted);font-size:12px;margin-top:4px">
+            Use this as your <code>Authorization: ******;key&gt;</code> header.
+          </p>`;
+        document.getElementById('dashboard-section').scrollIntoView({ behavior: 'smooth' });
+        // Clean the URL
+        history.replaceState(null, '', '/');
+      }
+    } catch (e) {
+      console.error('Failed to retrieve session key', e);
+    }
+  }
+
+  // ── My Usage ────────────────────────────────────────────────────────────────
+  async function loadMe() {
+    const key = getKey();
+    if (!key) {
+      document.getElementById('me-section').innerHTML =
+        '<p style="color:var(--red)">Save your API key first.</p>';
+      return;
+    }
+    try {
+      const r = await fetch(`${BASE_URL}/me`, { headers: authHeaders() });
+      const d = await r.json();
+      if (!r.ok) {
+        document.getElementById('me-section').innerHTML =
+          `<p style="color:var(--red)">${d.error || 'Unauthorized'}</p>`;
+        return;
+      }
+      if (d.role === 'admin') {
+        document.getElementById('me-section').innerHTML =
+          '<p style="color:var(--accent)">Signed in as admin — no quota limits.</p>';
+        return;
+      }
+      const pct = Math.min(100, Math.round((d.usedThisMonth ?? 0) / d.quotaPerMonth * 100)) || 0;
+      document.getElementById('me-section').innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">
+          <div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">EMAIL</div><div>${d.email}</div></div>
+          <div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">PLAN</div><div style="text-transform:capitalize;color:var(--accent);font-weight:600">${d.plan}</div></div>
+          <div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">STATUS</div><div>${d.status}</div></div>
+          <div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">MEMBER SINCE</div><div>${new Date(d.createdAt).toLocaleDateString()}</div></div>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">MONTHLY USAGE</div>
+        <div class="usage-bar-bg"><div class="usage-bar-fill" style="width:${pct}%"></div></div>
+        <div class="usage-label">${d.usedThisMonth ?? 0} / ${d.quotaPerMonth} jobs used this month</div>`;
+    } catch (e) {
+      document.getElementById('me-section').innerHTML =
+        `<p style="color:var(--red)">${e}</p>`;
     }
   }
 
@@ -160,7 +281,13 @@ const App = (() => {
     if (stored) document.getElementById('api-key').value = stored;
     checkHealth();
     setInterval(checkHealth, 30000);
+    retrieveKeyFromSession();
   });
 
-  return { saveKey, submitWorkflow, checkStatus, loadWorkflows, inspectKey, getConfig, setConfig };
+  return {
+    saveKey, loadMe,
+    openSignup, closeSignup, submitSignup,
+    submitWorkflow, checkStatus, loadWorkflows, inspectKey,
+    getConfig, setConfig,
+  };
 })();

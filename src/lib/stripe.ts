@@ -6,7 +6,7 @@ const STRIPE_API = 'https://api.stripe.com/v1';
 
 function stripeHeaders(env: Env): Headers {
   return new Headers({
-    Authorization: `******
+    Authorization: `Bearer ${env.STRIPE_SECRET_KEY}`,
     'Content-Type': 'application/x-www-form-urlencoded',
   });
 }

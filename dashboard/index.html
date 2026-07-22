@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>creatingfire.org — Orchestration Dashboard</title>
+  <title>creatingfire.org — AI Workflow Automation</title>
   <style>
     :root {
       --bg: #0d0d0d;
@@ -35,6 +35,9 @@
     }
     header h1 { font-size: 18px; font-weight: 600; letter-spacing: 0.5px; }
     header h1 span { color: var(--accent); }
+    header nav { display: flex; gap: 16px; }
+    header nav a { color: var(--muted); text-decoration: none; font-size: 13px; }
+    header nav a:hover { color: var(--accent); }
     #status-dot {
       width: 10px; height: 10px; border-radius: 50%;
       background: var(--muted); display: inline-block; margin-right: 8px;
@@ -73,6 +76,7 @@
       background: transparent; border: 1px solid var(--border); color: var(--text);
     }
     button.secondary:hover { border-color: var(--accent); color: var(--accent); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
     #submit-result, #status-result {
       margin-top: 14px; padding: 12px; border-radius: 6px;
@@ -104,11 +108,45 @@
     #auth-bar label { margin: 0; white-space: nowrap; font-size: 12px; color: var(--muted); }
     #auth-bar input { margin: 0; flex: 1; max-width: 360px; }
     #empty-msg { color: var(--muted); font-size: 13px; }
+    /* ── Pricing section ──────────────────────────────────────────────────── */
+    #pricing { scroll-margin-top: 80px; }
+    .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    @media (max-width: 680px) { .pricing-grid { grid-template-columns: 1fr; } }
+    .plan-card {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 8px; padding: 20px; display: flex; flex-direction: column; gap: 12px;
+    }
+    .plan-card.popular { border-color: var(--accent); }
+    .plan-name { font-size: 15px; font-weight: 700; }
+    .plan-price { font-size: 26px; font-weight: 800; color: var(--accent); }
+    .plan-price span { font-size: 13px; font-weight: 400; color: var(--muted); }
+    .plan-quota { font-size: 12px; color: var(--muted); }
+    .plan-features { list-style: none; font-size: 12px; color: var(--text); line-height: 1.8; }
+    .plan-features li::before { content: '✓  '; color: var(--green); }
+    .plan-cta { margin-top: auto; }
+    /* ── Signup form ─────────────────────────────────────────────────────── */
+    #signup-result {
+      margin-top: 14px; padding: 12px; border-radius: 6px;
+      background: var(--bg); border: 1px solid var(--border);
+      font-size: 13px; display: none;
+    }
+    #signup-result.success { border-color: var(--green); color: var(--green); }
+    #signup-result.error   { border-color: var(--red);   color: var(--red); }
+    /* ── Usage bar ───────────────────────────────────────────────────────── */
+    .usage-bar-bg {
+      background: var(--border); border-radius: 4px; height: 8px; overflow: hidden; margin: 8px 0;
+    }
+    .usage-bar-fill { height: 100%; border-radius: 4px; background: var(--accent); transition: width 0.4s; }
+    .usage-label { font-size: 11px; color: var(--muted); }
   </style>
 </head>
 <body>
   <header>
-    <h1><span>creatingfire</span>.org — Orchestration</h1>
+    <h1><span>creatingfire</span>.org — Automation</h1>
+    <nav>
+      <a href="#pricing">Pricing</a>
+      <a href="#dashboard-section">Dashboard</a>
+    </nav>
     <div style="display:flex;align-items:center">
       <span id="status-dot"></span>
       <span id="status-label">Checking…</span>
@@ -117,13 +155,96 @@
 
   <div id="auth-bar">
     <label for="api-key">API Key</label>
-    <input type="password" id="api-key" placeholder="******" />
+    <input type="password" id="api-key" placeholder="Paste your API key" />
     <button class="secondary" onclick="App.saveKey()">Save</button>
+    <button class="secondary" onclick="App.loadMe()" style="white-space:nowrap">My Usage</button>
   </div>
 
   <main>
-    <!-- Submit Workflow -->
+
+    <!-- ── Pricing / Sign-up ─────────────────────────────────────────────── -->
+    <section id="pricing">
+      <h2>Plans &amp; Pricing</h2>
+      <div class="section-body">
+        <p style="color:var(--muted);margin-bottom:20px;font-size:13px">
+          Every plan includes: AI generation, marketing, education and webhook automation.
+          Jobs are counted per calendar month and reset automatically.
+        </p>
+        <div class="pricing-grid">
+
+          <div class="plan-card">
+            <div class="plan-name">Free</div>
+            <div class="plan-price">$0 <span>/ month</span></div>
+            <div class="plan-quota">100 jobs / month</div>
+            <ul class="plan-features">
+              <li>All workflow domains</li>
+              <li>R2 output storage</li>
+              <li>Queue retries</li>
+            </ul>
+            <div class="plan-cta">
+              <button class="secondary" style="width:100%" onclick="App.openSignup('starter')">Get free key →</button>
+            </div>
+          </div>
+
+          <div class="plan-card popular">
+            <div class="plan-name">Starter ⭐</div>
+            <div class="plan-price">$9 <span>/ month</span></div>
+            <div class="plan-quota">1,000 jobs / month</div>
+            <ul class="plan-features">
+              <li>All workflow domains</li>
+              <li>R2 output storage</li>
+              <li>Queue retries</li>
+              <li>Usage dashboard</li>
+              <li>Email support</li>
+            </ul>
+            <div class="plan-cta">
+              <button style="width:100%" onclick="App.openSignup('starter')">Subscribe →</button>
+            </div>
+          </div>
+
+          <div class="plan-card">
+            <div class="plan-name">Pro</div>
+            <div class="plan-price">$49 <span>/ month</span></div>
+            <div class="plan-quota">10,000 jobs / month</div>
+            <ul class="plan-features">
+              <li>All workflow domains</li>
+              <li>R2 output storage</li>
+              <li>Queue retries</li>
+              <li>Usage dashboard</li>
+              <li>Priority support</li>
+              <li>Custom cron schedules</li>
+            </ul>
+            <div class="plan-cta">
+              <button style="width:100%" onclick="App.openSignup('pro')">Subscribe →</button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Inline signup form -->
+        <div id="signup-form" style="margin-top:20px;display:none">
+          <label>Email address</label>
+          <input type="email" id="signup-email" placeholder="you@example.com" style="max-width:360px" />
+          <div style="display:flex;gap:10px;align-items:center">
+            <button id="signup-btn" onclick="App.submitSignup()">Continue to payment →</button>
+            <span id="signup-plan-label" style="color:var(--muted);font-size:12px"></span>
+            <button class="secondary" onclick="App.closeSignup()">Cancel</button>
+          </div>
+          <div id="signup-result"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── My Usage ─────────────────────────────────────────────────────── -->
     <section>
+      <h2>My Usage</h2>
+      <div class="section-body" id="me-section">
+        <p style="color:var(--muted);font-size:13px">Save your API key above and click "My Usage" to view your account.</p>
+      </div>
+    </section>
+
+    <!-- ── Submit Workflow ───────────────────────────────────────────────── -->
+    <section id="dashboard-section">
       <h2>Submit Workflow</h2>
       <div class="section-body">
         <div class="row">

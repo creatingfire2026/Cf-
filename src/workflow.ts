@@ -2,6 +2,7 @@ import { Env, WorkflowJob, WorkflowState, WorkflowStep } from './lib/types';
 import { handleAI } from './handlers/ai';
 import { handleMarketing } from './handlers/marketing';
 import { handleEducation } from './handlers/education';
+import { handleBillingJob } from './handlers/billing';
 import { log } from './lib/logger';
 
 const STATE_KEY = 'state';
@@ -73,6 +74,9 @@ export class WorkflowDurableObject {
           break;
         case 'education':
           result = await handleEducation(job, this.env);
+          break;
+        case 'billing':
+          result = await handleBillingJob(job, this.env);
           break;
         case 'system':
           result = { handled: true, domain: 'system', action: job.action };
