@@ -3,6 +3,26 @@ require("@nomicfoundation/hardhat-ethers");
 require("@nomicfoundation/hardhat-chai-matchers");
 
 const {
+  TASK_COMPILE_SOLIDITY_GET_SOLC_BUILD,
+} = require("hardhat/builtin-tasks/task-names");
+
+// Fall back to the locally installed `solc` npm package when the Solidity
+// compiler binary cannot be downloaded (e.g. restricted network environments).
+subtask(TASK_COMPILE_SOLIDITY_GET_SOLC_BUILD, async (args, _hre, runSuper) => {
+  try {
+    return await runSuper(args);
+  } catch (_err) {
+    const { version } = require("solc/package.json");
+    return {
+      compilerPath: require.resolve("solc/soljson.js"),
+      isSolcJs: true,
+      version,
+      longVersion: version,
+    };
+  }
+});
+
+const {
   DEPLOYER_PRIVATE_KEY,
   RPC_URL,
   MAINNET_RPC_URL,
