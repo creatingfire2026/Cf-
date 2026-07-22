@@ -6,8 +6,16 @@ const {
   TASK_COMPILE_SOLIDITY_GET_SOLC_BUILD,
 } = require("hardhat/builtin-tasks/task-names");
 
-// Fall back to the locally installed `solc` npm package when the Solidity
-// compiler binary cannot be downloaded (e.g. restricted network environments).
+/**
+ * Overrides the default Solidity compiler build resolution to fall back to the
+ * locally installed `solc` npm package when the compiler binary cannot be
+ * downloaded from the internet (e.g. in CI or restricted network environments).
+ *
+ * @param {object} args - Subtask arguments (solcVersion, quiet).
+ * @param {object} _hre - Hardhat Runtime Environment (unused).
+ * @param {Function} runSuper - The default subtask implementation.
+ * @returns {{ compilerPath: string, isSolcJs: boolean, version: string, longVersion: string }}
+ */
 subtask(TASK_COMPILE_SOLIDITY_GET_SOLC_BUILD, async (args, _hre, runSuper) => {
   try {
     return await runSuper(args);
