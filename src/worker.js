@@ -1,4 +1,4 @@
-import { Interface, formatUnits, parseUnits } from "ethers";
+import { formatUnits, parseUnits } from "ethers";
 import {
   analyzeToken,
   getLatestSnapshot,
@@ -12,13 +12,11 @@ import {
   trackApplication,
 } from "./agents/jobs.js";
 import { analyzeRepo, getLastAudit, runAudit } from "./agents/toolchain.js";
-
-const TOKEN_INTERFACE = new Interface([
-  "function name() view returns (string)",
-  "function symbol() view returns (string)",
-  "function totalSupply() view returns (uint256)",
-  "function burnTokens(uint256 amount)",
-]);
+import {
+  callTokenMethod,
+  rpcRequest,
+  TOKEN_INTERFACE,
+} from "./agents/tokenRpc.js";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -50,36 +48,6 @@ function ensureAuth(request, env) {
     err.status = 401;
     throw err;
   }
-}
-
-async function rpcRequest(env, method, params = []) {
-  if (!env.RPC_URL) {
-    throw new Error("Missing required env var: RPC_URL");
-  }
-
-  const response = await fetch(env.RPC_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ jsonrpc: "2.0", id: Date.now(), method, params }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`RPC request failed with status ${response.status}`);
-  }
-
-  const payload = await response.json();
-  if (payload.error) {
-    throw new Error(payload.error.message || "Unknown RPC error");
-  }
-
-  return payload.result;
-}
-
-async function callToken(contractAddress, fnName, env) {
-  const data = TOKEN_INTERFACE.encodeFunctionData(fnName, []);
-  const result = await rpcRequest(env, "eth_call", [{ to: contractAddress, data }, "latest"]);
-  const [decoded] = TOKEN_INTERFACE.decodeFunctionResult(fnName, result);
-  return decoded;
 }
 
 async function listAgentState(env) {
@@ -125,12 +93,19 @@ async function logTokenEvent(env, eventType, txHash, amount, address, blockNumbe
 }
 
 async function runScheduledAgents(env, trigger = "scheduled") {
-  const financeSnapshot = await getMarketSnapshot("SAMPLE1", env);
+  const financeTicker = env.FINANCE_TICKER || "SAMPLE1";
+  const scheduledSkills = (env.JOB_SKILLS || "solidity,cloudflare,workers")
+    .split(",")
+    .map((skill) => skill.trim())
+    .filter(Boolean);
+  const scheduledLocation = env.JOB_LOCATION || "remote";
+
+  const financeSnapshot = await getMarketSnapshot(financeTicker, env);
   await storeSnapshot(financeSnapshot, env);
   await env.AGENT_STATE.put("agent:finance", JSON.stringify(financeSnapshot));
   await logAgentRun(env, "finance", "success", `Snapshot stored for ${financeSnapshot.ticker}`);
 
-  const jobs = await searchJobs(["solidity", "cloudflare", "workers"], "remote", env);
+  const jobs = await searchJobs(scheduledSkills, scheduledLocation, env);
   await storeResults(jobs, env);
   await env.AGENT_STATE.put("agent:jobs", JSON.stringify(jobs));
   await logAgentRun(env, "jobs", "success", `Saved ${jobs.jobs.length} job results`);
@@ -211,9 +186,9 @@ async function handleRequest(request, env) {
     }
 
     const [name, symbol, totalSupply] = await Promise.all([
-      callToken(contractAddress, "name", env),
-      callToken(contractAddress, "symbol", env),
-      callToken(contractAddress, "totalSupply", env),
+      callTokenMethod(contractAddress, "name", env),
+      callTokenMethod(contractAddress, "symbol", env),
+      callTokenMethod(contractAddress, "totalSupply", env),
     ]);
 
     return json(true, {
@@ -307,10 +282,11 @@ async function handleRequest(request, env) {
     }
 
     let applications = [];
+    let applicationsWarning = null;
     try {
       applications = await getApplications(env);
     } catch (error) {
-      applications = [{ warning: error.message }];
+      applicationsWarning = error.message;
     }
 
     await env.AGENT_STATE.put("agent:jobs", JSON.stringify({ results, applicationsCount: applications.length }));
@@ -318,6 +294,7 @@ async function handleRequest(request, env) {
     return json(true, {
       results,
       applications,
+      applicationsWarning,
     });
   }
 

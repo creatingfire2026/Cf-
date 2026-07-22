@@ -62,7 +62,7 @@ CreatingFire Ecosystem unifies the `Cf-` ERC20 token contract and Theodore's mul
 
 All endpoints require:
 
-- Header: `Authorization` with a valid API token
+- Header: `Authorization` must include the API secret token
 - JSON response envelope: `{ success, data, timestamp }`
 
 ### Health
@@ -89,13 +89,19 @@ All endpoints require:
 |---|---|---|
 | `DEPLOYER_PRIVATE_KEY` | Hardhat | Deployment signer key |
 | `RPC_URL` | Hardhat + Worker | Chain RPC endpoint |
+| `MAINNET_RPC_URL` | Hardhat | Optional mainnet-specific RPC override |
+| `SEPOLIA_RPC_URL` | Hardhat | Optional sepolia-specific RPC override |
+| `POLYGON_RPC_URL` | Hardhat | Optional polygon-specific RPC override |
 | `ETHERSCAN_API_KEY` | Hardhat | Verification API key |
 | `REPORT_GAS` | Hardhat | Enable gas reporting (`true`/`false`) |
-| `API_SECRET` | Worker | ****** validation |
+| `API_SECRET` | Worker | API endpoint authorization token |
 | `NETWORK` | Worker vars | Target network label (`mainnet`) |
 | `TOKEN_CONTRACT_ADDRESS` | Worker | Default token address for status/burn |
 | `TOKEN_BYTECODE` | Worker | Optional default deployment bytecode |
 | `DEPLOYER_ADDRESS` | Worker | Optional unlocked RPC deploy/burn sender |
+| `FINANCE_TICKER` | Worker | Scheduled finance ticker (default `SAMPLE1`) |
+| `JOB_SKILLS` | Worker | Comma-separated scheduled job skills |
+| `JOB_LOCATION` | Worker | Scheduled job location (default `remote`) |
 
 ## GitHub Actions CI/CD
 
