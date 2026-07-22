@@ -4,14 +4,15 @@ const BASE_URL = window.location.origin; // same-origin Worker
 
 const App = (() => {
   let _signupPlan = 'starter';
+  // API key held in memory only — never written to storage to protect the credential
+  let _apiKey = '';
 
   function getKey() {
-    return sessionStorage.getItem('cf_api_key') ?? '';
+    return _apiKey;
   }
 
   function saveKey() {
-    const key = document.getElementById('api-key').value.trim();
-    sessionStorage.setItem('cf_api_key', key);
+    _apiKey = document.getElementById('api-key').value.trim();
     showResult('submit-result', { saved: true });
   }
 
@@ -108,12 +109,12 @@ const App = (() => {
       const r = await fetch(`${BASE_URL}/signup/success?session_id=${encodeURIComponent(sessionId)}`);
       const d = await r.json();
       if (d.apiKey) {
-        sessionStorage.setItem('cf_api_key', d.apiKey);
+        _apiKey = d.apiKey;
         document.getElementById('api-key').value = d.apiKey;
         const meSection = document.getElementById('me-section');
         meSection.innerHTML = `
           <p style="color:var(--green);font-weight:600;margin-bottom:12px">✓ Payment successful! Your API key is ready.</p>
-          <label>Your API Key (save this somewhere safe)</label>
+          <label>Your API Key (copy and save somewhere safe — it will not be shown again)</label>
           <input type="text" value="${d.apiKey}" readonly onclick="this.select()"
             style="font-family:monospace;font-size:12px;letter-spacing:0.5px" />
           <p style="color:var(--muted);font-size:12px;margin-top:4px">
@@ -277,8 +278,6 @@ const App = (() => {
 
   // ── Init ────────────────────────────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', () => {
-    const stored = sessionStorage.getItem('cf_api_key');
-    if (stored) document.getElementById('api-key').value = stored;
     checkHealth();
     setInterval(checkHealth, 30000);
     retrieveKeyFromSession();
