@@ -46,12 +46,14 @@ describe("ERC20_Token_Sample", function () {
   describe("Transfers", function () {
     it("transfers from the explicit recipient", async function () {
       const amount = ethers.parseUnits("1000", 18);
-      await expect(token.connect(recipient).transfer(alice.address, amount))
+      const recipientAddr = await recipient.getAddress();
+      const aliceAddr = await alice.getAddress();
+      await expect(token.connect(recipient).transfer(aliceAddr, amount))
         .to.emit(token, "Transfer")
-        .withArgs(recipient.address, alice.address, amount);
+        .withArgs(recipientAddr, aliceAddr, amount);
 
-      expect(await token.balanceOf(alice.address)).to.equal(amount);
-      expect(await token.balanceOf(recipient.address)).to.equal(
+      expect(await token.balanceOf(aliceAddr)).to.equal(amount);
+      expect(await token.balanceOf(recipientAddr)).to.equal(
         INITIAL_SUPPLY - amount
       );
     });
@@ -91,17 +93,18 @@ describe("ERC20_Token_Sample", function () {
   describe("burnTokens", function () {
     it("burns from the caller and reduces supply", async function () {
       const amount = ethers.parseUnits("500", 18);
-      await expect(token.connect(recipient).burnTokens(amount))
-        .to.emit(token, "TokensBurned")
-        .withArgs(recipient.address, amount)
-        .and.to.emit(token, "Transfer")
-        .withArgs(recipient.address, ethers.ZeroAddress, amount);
+     const recipientAddr = await recipient.getAddress();
+     await expect(token.connect(recipient).burnTokens(amount))
+       .to.emit(token, "TokensBurned")
+       .withArgs(recipientAddr, amount)
+       .and.to.emit(token, "Transfer")
+       .withArgs(recipientAddr, ethers.ZeroAddress, amount);
 
-      expect(await token.balanceOf(recipient.address)).to.equal(
-        INITIAL_SUPPLY - amount
-      );
-      expect(await token.totalSupply()).to.equal(INITIAL_SUPPLY - amount);
-    });
+     expect(await token.balanceOf(recipientAddr)).to.equal(
+       INITIAL_SUPPLY - amount
+     );
+     expect(await token.totalSupply()).to.equal(INITIAL_SUPPLY - amount);
+   });
 
     it("rejects zero and insufficient burn amounts", async function () {
       await expect(
@@ -123,11 +126,12 @@ describe("ERC20_Token_Sample", function () {
 
     it("burns approved tokens and consumes allowance", async function () {
       const supplyBefore = await token.totalSupply();
-      await expect(token.connect(bob).burnFrom(alice.address, amount))
+      const aliceAddr = await alice.getAddress();
+      await expect(token.connect(bob).burnFrom(aliceAddr, amount))
         .to.emit(token, "TokensBurned")
-        .withArgs(alice.address, amount);
+        .withArgs(aliceAddr, amount);
 
-      expect(await token.allowance(alice.address, bob.address)).to.equal(0);
+      expect(await token.allowance(aliceAddr, await bob.getAddress())).to.equal(0);
       expect(await token.totalSupply()).to.equal(supplyBefore - amount);
     });
 
