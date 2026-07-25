@@ -13,7 +13,8 @@ describe("ERC20_Token_Sample", function () {
       "ERC20_Token_Sample",
       deployer
     );
-    token = await Token.deploy(recipient.address);
+    const recipientAddr = await recipient.getAddress();
+    token = await Token.deploy(recipientAddr);
     await token.waitForDeployment();
   });
 
@@ -25,13 +26,15 @@ describe("ERC20_Token_Sample", function () {
     });
 
     it("mints the complete supply to the explicit recipient", async function () {
-      expect(await token.balanceOf(recipient.address)).to.equal(INITIAL_SUPPLY);
+      const recipientAddr = await recipient.getAddress();
+      expect(await token.balanceOf(recipientAddr)).to.equal(INITIAL_SUPPLY);
       expect(await token.totalSupply()).to.equal(INITIAL_SUPPLY);
       expect(await token.INITIAL_SUPPLY()).to.equal(INITIAL_SUPPLY);
     });
 
     it("does not mint to the deployer", async function () {
-      expect(await token.balanceOf(deployer.address)).to.equal(0);
+      const deployerAddr = await deployer.getAddress();
+      expect(await token.balanceOf(deployerAddr)).to.equal(0);
     });
 
     it("rejects the zero-address recipient", async function () {
@@ -59,8 +62,10 @@ describe("ERC20_Token_Sample", function () {
     });
 
     it("reverts for an insufficient balance", async function () {
+      const aliceAddr = await alice.getAddress();
+      const bobAddr = await bob.getAddress();
       await expect(
-        token.connect(alice).transfer(bob.address, ethers.parseUnits("1", 18))
+        token.connect(alice).transfer(bobAddr, ethers.parseUnits("1", 18))
       ).to.be.reverted;
     });
   });
@@ -68,24 +73,30 @@ describe("ERC20_Token_Sample", function () {
   describe("Allowances", function () {
     it("supports approve and transferFrom", async function () {
       const amount = ethers.parseUnits("100", 18);
-      await token.connect(recipient).approve(alice.address, amount);
+      const recipientAddr = await recipient.getAddress();
+      const aliceAddr = await alice.getAddress();
+      const bobAddr = await bob.getAddress();
+      await token.connect(recipient).approve(aliceAddr, amount);
       expect(
-        await token.allowance(recipient.address, alice.address)
+        await token.allowance(recipientAddr, aliceAddr)
       ).to.equal(amount);
 
       await token
         .connect(alice)
-        .transferFrom(recipient.address, bob.address, amount);
-      expect(await token.balanceOf(bob.address)).to.equal(amount);
+        .transferFrom(recipientAddr, bobAddr, amount);
+      expect(await token.balanceOf(bobAddr)).to.equal(amount);
     });
 
     it("reverts when allowance is exceeded", async function () {
       const amount = ethers.parseUnits("100", 18);
-      await token.connect(recipient).approve(alice.address, amount);
+      const recipientAddr = await recipient.getAddress();
+      const aliceAddr = await alice.getAddress();
+      const bobAddr = await bob.getAddress();
+      await token.connect(recipient).approve(aliceAddr, amount);
       await expect(
         token
           .connect(alice)
-          .transferFrom(recipient.address, bob.address, amount + 1n)
+          .transferFrom(recipientAddr, bobAddr, amount + 1n)
       ).to.be.reverted;
     });
   });
@@ -93,18 +104,18 @@ describe("ERC20_Token_Sample", function () {
   describe("burnTokens", function () {
     it("burns from the caller and reduces supply", async function () {
       const amount = ethers.parseUnits("500", 18);
-     const recipientAddr = await recipient.getAddress();
-     await expect(token.connect(recipient).burnTokens(amount))
-       .to.emit(token, "TokensBurned")
-       .withArgs(recipientAddr, amount)
-       .and.to.emit(token, "Transfer")
-       .withArgs(recipientAddr, ethers.ZeroAddress, amount);
+      const recipientAddr = await recipient.getAddress();
+      await expect(token.connect(recipient).burnTokens(amount))
+        .to.emit(token, "TokensBurned")
+        .withArgs(recipientAddr, amount)
+        .and.to.emit(token, "Transfer")
+        .withArgs(recipientAddr, ethers.ZeroAddress, amount);
 
-     expect(await token.balanceOf(recipientAddr)).to.equal(
-       INITIAL_SUPPLY - amount
-     );
-     expect(await token.totalSupply()).to.equal(INITIAL_SUPPLY - amount);
-   });
+      expect(await token.balanceOf(recipientAddr)).to.equal(
+        INITIAL_SUPPLY - amount
+      );
+      expect(await token.totalSupply()).to.equal(INITIAL_SUPPLY - amount);
+    });
 
     it("rejects zero and insufficient burn amounts", async function () {
       await expect(
@@ -118,29 +129,33 @@ describe("ERC20_Token_Sample", function () {
     const amount = ethers.parseUnits("300", 18);
 
     beforeEach(async function () {
+      const aliceAddr = await alice.getAddress();
+      const bobAddr = await bob.getAddress();
       await token
         .connect(recipient)
-        .transfer(alice.address, ethers.parseUnits("1000", 18));
-      await token.connect(alice).approve(bob.address, amount);
+        .transfer(aliceAddr, ethers.parseUnits("1000", 18));
+      await token.connect(alice).approve(bobAddr, amount);
     });
 
     it("burns approved tokens and consumes allowance", async function () {
       const supplyBefore = await token.totalSupply();
       const aliceAddr = await alice.getAddress();
+      const bobAddr = await bob.getAddress();
       await expect(token.connect(bob).burnFrom(aliceAddr, amount))
         .to.emit(token, "TokensBurned")
         .withArgs(aliceAddr, amount);
 
-      expect(await token.allowance(aliceAddr, await bob.getAddress())).to.equal(0);
+      expect(await token.allowance(aliceAddr, bobAddr)).to.equal(0);
       expect(await token.totalSupply()).to.equal(supplyBefore - amount);
     });
 
     it("rejects zero and excessive allowance burns", async function () {
+      const aliceAddr = await alice.getAddress();
       await expect(
-        token.connect(bob).burnFrom(alice.address, 0)
+        token.connect(bob).burnFrom(aliceAddr, 0)
       ).to.be.revertedWithCustomError(token, "ZeroBurnAmount");
       await expect(
-        token.connect(bob).burnFrom(alice.address, amount + 1n)
+        token.connect(bob).burnFrom(aliceAddr, amount + 1n)
       ).to.be.reverted;
     });
   });
