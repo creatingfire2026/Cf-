@@ -1,18 +1,44 @@
-name: Hardhat Test
+name: Validate Hardhat Project
 
 on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: hardhat-validation-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  test:
+  validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
-      - run: npx hardhat compile
-      - run: npx hardhat test
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Scan tracked files for common secret formats
+        run: npm run scan:secrets
+
+      - name: Compile contracts
+        run: npm run compile
+
+      - name: Run unit tests
+        run: npm test
+
+      - name: Lint Solidity
+        run: npm run lint
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
