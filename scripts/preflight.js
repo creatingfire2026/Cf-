@@ -51,7 +51,7 @@ async function main() {
   const source = fs.readFileSync(CONTRACT_PATH);
   const sourceSha256 = crypto.createHash("sha256").update(source).digest("hex");
 
-  console.log("SAMPLE1 SEP0LIA PREFLIGHT");
+  console.log("SAMPLE1 SEPOLIA PREFLIGHT");
   console.log("Network:", network.name);
   console.log("Chain ID:", network.chainId.toString());
   console.log("Deployment signer:", deployerAddress);
