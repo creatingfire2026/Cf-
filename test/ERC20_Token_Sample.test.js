@@ -19,8 +19,8 @@ describe("ERC20_Token_Sample", function () {
 
   describe("Deployment", function () {
     it("sets the token metadata", async function () {
-      expect(await token.name()).to.equal("F4de");
-      expect(await token.symbol()).to.equal("F4DE");
+      expect(await token.name()).to.equal("ERC20 Token Sample1");
+      expect(await token.symbol()).to.equal("SAMPLE1");
       expect(await token.decimals()).to.equal(18);
     });
 
