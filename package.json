@@ -1,7 +1,7 @@
 {
-  "name": "erc20-token-sample",
+  "name": "f4de",
   "version": "1.0.0",
-  "description": "Production-ready ERC20 token with burn capability",
+  "description": "Production-ready F4de ERC20 token with burn capability",
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",

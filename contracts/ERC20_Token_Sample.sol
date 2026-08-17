@@ -5,7 +5,7 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 
 /**
- * @title ERC20_Token_Sample
+ * @title F4de
  * @notice ERC20 token with burn capability and an explicit initial recipient.
  * @dev Mints 100 billion tokens once at construction. No owner, admin, or later minting.
  */
@@ -20,7 +20,7 @@ contract ERC20_Token_Sample is ERC20, ERC20Burnable {
     /**
      * @param initialRecipient Address that receives the complete initial supply.
      */
-    constructor(address initialRecipient) ERC20("ERC20 Token Sample1", "SAMPLE1") {
+    constructor(address initialRecipient) ERC20("F4de", "F4DE") {
         if (initialRecipient == address(0)) revert InvalidInitialRecipient();
         _mint(initialRecipient, INITIAL_SUPPLY);
     }
