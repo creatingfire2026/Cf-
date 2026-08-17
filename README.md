@@ -1,13 +1,13 @@
-# F4de
+# SAMPLE1 ERC-20
 
-F4de is a fixed-supply, burnable ERC-20 built with OpenZeppelin and Hardhat 2.
+SAMPLE1 is a fixed-supply, burnable ERC-20 built with OpenZeppelin and Hardhat 2.
 
 ## Token parameters
 
-- Name: `F4de`
-- Symbol: `F4DE`
+- Name: `ERC20 Token Sample1`
+- Symbol: `SAMPLE1`
 - Decimals: `18`
-- Initial supply: `100,000,000,000 F4DE`
+- Initial supply: `100,000,000,000 SAMPLE1`
 - Additional minting: none
 - Owner/admin role: none
 
@@ -28,7 +28,7 @@ Copy `.env.example` to `.env` and configure:
 ```dotenv
 SEPOLIA_RPC_URL=<your Sepolia RPC URL>
 SEPOLIA_PRIVATE_KEY=<private key for a dedicated funded Sepolia deployer>
-INITIAL_RECIPIENT=0x7dC8F4C6319180a68260F5a3d2bDdA2893Fa769f
+INITIAL_RECIPIENT=0x32fcb670a04bd7eac165c3ed485165098e2374bd
 ```
 
 Never commit `.env`, a private key, seed phrase, wallet backup, or signing PIN. The repository `.gitignore` excludes `.env`.
