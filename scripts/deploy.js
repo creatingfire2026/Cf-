@@ -1,7 +1,7 @@
 const { ethers } = require("hardhat");
 
 const DEFAULT_RECIPIENT =
-  "0x32fcb670a04bd7eac165c3ed485165098e2374bd";
+  "0x7dC8F4C6319180a68260F5a3d2bDdA2893Fa769f";
 const EXPECTED_SUPPLY = 100_000_000_000n * 10n ** 18n;
 
 async function main() {
