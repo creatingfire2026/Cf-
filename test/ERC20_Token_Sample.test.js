@@ -62,7 +62,7 @@ describe("ERC20_Token_Sample", function () {
         })
         .find(event => event !== null && event.name === "Transfer");
       
-      expect(transferEvent).to.not.be.null;
+      expect(transferEvent).to.not.be.undefined;
       expect(transferEvent.args[0]).to.equal(ethers.ZeroAddress);
       expect(transferEvent.args[1]).to.equal(recipient.address);
       expect(transferEvent.args[2]).to.equal(INITIAL_SUPPLY);
