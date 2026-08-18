@@ -46,10 +46,26 @@ describe("ERC20_Token_Sample", function () {
       const Token = await ethers.getContractFactory("ERC20_Token_Sample");
       const instance = await Token.deploy(recipient.address);
       await instance.waitForDeployment();
+      
       const deploymentTx = instance.deploymentTransaction();
-      await expect(deploymentTx)
-        .to.emit(instance, "Transfer")
-        .withArgs(ethers.ZeroAddress, recipient.address, INITIAL_SUPPLY);
+      const receipt = await deploymentTx.wait();
+      
+      // Verify Transfer event was emitted during deployment
+      const iface = Token.interface;
+      const transferEvent = receipt.logs
+        .map(log => {
+          try {
+            return iface.parseLog(log);
+          } catch {
+            return null;
+          }
+        })
+        .find(event => event !== null && event.name === "Transfer");
+      
+      expect(transferEvent).to.not.be.null;
+      expect(transferEvent.args[0]).to.equal(ethers.ZeroAddress);
+      expect(transferEvent.args[1]).to.equal(recipient.address);
+      expect(transferEvent.args[2]).to.equal(INITIAL_SUPPLY);
     });
   });
 
