@@ -44,8 +44,11 @@ describe("ERC20_Token_Sample", function () {
 
     it("emits the standard mint Transfer event for the recipient", async function () {
       const Token = await ethers.getContractFactory("ERC20_Token_Sample");
-      await expect(Token.deploy(recipient.address))
-        .to.emit(Token, "Transfer")
+      const instance = await Token.deploy(recipient.address);
+      await instance.waitForDeployment();
+      const deploymentTx = instance.deploymentTransaction();
+      await expect(deploymentTx)
+        .to.emit(instance, "Transfer")
         .withArgs(ethers.ZeroAddress, recipient.address, INITIAL_SUPPLY);
     });
   });
