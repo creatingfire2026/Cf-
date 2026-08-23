@@ -28,11 +28,19 @@ async function expectRevertedWithCustomError(promise, contract, errorName) {
     if (err.data && contract && contract.interface) {
       try {
         const decodedError = contract.interface.parseError(err.data);
-        if (decodedError) {
-          expect(decodedError.name).to.equal(errorName);
-          return;
+        if (!decodedError) {
+          // parseError returned null/undefined for error data
+          throw new Error(
+            `Failed to decode error. Expected "${errorName}" but parseError returned null. Error data: ${err.data}`
+          );
         }
+        expect(decodedError.name).to.equal(errorName);
+        return;
       } catch (decodeErr) {
+        // Re-throw if it's our own error, otherwise it's a parsing error
+        if (decodeErr.message?.includes("Failed to decode error")) {
+          throw decodeErr;
+        }
         // If decoding fails with error data present, it's likely an unexpected error
         throw new Error(
           `Failed to decode error. Expected "${errorName}" but got: ${err.message || err.reason || err.data}`
