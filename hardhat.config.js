@@ -1,6 +1,5 @@
-require("@nomicfoundation/hardhat-ethers");
-require("@nomicfoundation/hardhat-chai-matchers");
+import "@nomicfoundation/hardhat-ethers";
 
-module.exports = {
+export default {
   solidity: "0.8.26",
 };
