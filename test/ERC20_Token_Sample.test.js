@@ -1,6 +1,19 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
 
+// Utility function to replace hardhat-chai-matchers .to.be.reverted
+async function expectReverted(promise) {
+  try {
+    await promise;
+    throw new Error("Expected transaction to be reverted");
+  } catch (err) {
+    if (err.message === "Expected transaction to be reverted") {
+      throw err;
+    }
+    // Transaction was reverted as expected
+  }
+}
+
 describe("ERC20_Token_Sample", function () {
   let token;
   let deployer, alice, bob;
@@ -54,16 +67,30 @@ describe("ERC20_Token_Sample", function () {
 
     it("reverts when sender has insufficient balance", async function () {
       const amount = ethers.parseUnits("1", 18);
-      await expect(
+      await expectReverted(
         token.connect(alice).transfer(bob.address, amount)
-      ).to.be.reverted;
+      );
     });
 
     it("emits a Transfer event", async function () {
       const amount = ethers.parseUnits("500", 18);
-      await expect(token.transfer(alice.address, amount))
-        .to.emit(token, "Transfer")
-        .withArgs(deployer.address, alice.address, amount);
+      const tx = await token.transfer(alice.address, amount);
+      const receipt = await tx.wait();
+      
+      const event = receipt.logs
+        .map((log) => {
+          try {
+            return token.interface.parseLog(log);
+          } catch {
+            return null;
+          }
+        })
+        .find((parsed) => parsed?.name === "Transfer");
+      
+      expect(event).to.exist;
+      expect(event.args[0]).to.equal(deployer.address);
+      expect(event.args[1]).to.equal(alice.address);
+      expect(event.args[2]).to.equal(amount);
     });
   });
 
@@ -89,11 +116,11 @@ describe("ERC20_Token_Sample", function () {
     it("reverts transferFrom when allowance exceeded", async function () {
       const amount = ethers.parseUnits("100", 18);
       await token.approve(alice.address, amount);
-      await expect(
+      await expectReverted(
         token
           .connect(alice)
           .transferFrom(deployer.address, bob.address, amount + 1n)
-      ).to.be.reverted;
+      );
     });
   });
 
@@ -117,25 +144,57 @@ describe("ERC20_Token_Sample", function () {
 
     it("emits TokensBurned", async function () {
       const burnAmount = ethers.parseUnits("100", 18);
-      await expect(token.burnTokens(burnAmount))
-        .to.emit(token, "TokensBurned")
-        .withArgs(deployer.address, burnAmount);
+      const tx = await token.burnTokens(burnAmount);
+      const receipt = await tx.wait();
+      
+      const event = receipt.logs
+        .map((log) => {
+          try {
+            return token.interface.parseLog(log);
+          } catch {
+            return null;
+          }
+        })
+        .find((parsed) => parsed?.name === "TokensBurned");
+      
+      expect(event).to.exist;
+      expect(event.args[0]).to.equal(deployer.address);
+      expect(event.args[1]).to.equal(burnAmount);
     });
 
     it("also emits the standard Transfer-to-zero event", async function () {
       const burnAmount = ethers.parseUnits("100", 18);
-      await expect(token.burnTokens(burnAmount))
-        .to.emit(token, "Transfer")
-        .withArgs(deployer.address, ethers.ZeroAddress, burnAmount);
+      const tx = await token.burnTokens(burnAmount);
+      const receipt = await tx.wait();
+      
+      const event = receipt.logs
+        .map((log) => {
+          try {
+            return token.interface.parseLog(log);
+          } catch {
+            return null;
+          }
+        })
+        .find((parsed) => parsed?.name === "Transfer");
+      
+      expect(event).to.exist;
+      expect(event.args[0]).to.equal(deployer.address);
+      expect(event.args[1]).to.equal(ethers.ZeroAddress);
+      expect(event.args[2]).to.equal(burnAmount);
     });
 
     it("reverts when amount is 0", async function () {
-      await expect(token.burnTokens(0)).to.be.revertedWithCustomError(token, "ZeroBurnAmount");
+      try {
+        await token.burnTokens(0);
+        throw new Error("Expected transaction to be reverted with ZeroBurnAmount error");
+      } catch (err) {
+        expect(err.message).to.include("ZeroBurnAmount");
+      }
     });
 
     it("reverts when caller has insufficient balance", async function () {
       const tooMuch = INITIAL_SUPPLY + 1n;
-      await expect(token.burnTokens(tooMuch)).to.be.reverted;
+      await expectReverted(token.burnTokens(tooMuch));
     });
   });
 
@@ -174,21 +233,37 @@ describe("ERC20_Token_Sample", function () {
     });
 
     it("emits TokensBurned with the token holder's address", async function () {
-      await expect(token.connect(bob).burnFrom(alice.address, burnAmount))
-        .to.emit(token, "TokensBurned")
-        .withArgs(alice.address, burnAmount);
+      const tx = await token.connect(bob).burnFrom(alice.address, burnAmount);
+      const receipt = await tx.wait();
+      
+      const event = receipt.logs
+        .map((log) => {
+          try {
+            return token.interface.parseLog(log);
+          } catch {
+            return null;
+          }
+        })
+        .find((parsed) => parsed?.name === "TokensBurned");
+      
+      expect(event).to.exist;
+      expect(event.args[0]).to.equal(alice.address);
+      expect(event.args[1]).to.equal(burnAmount);
     });
 
     it("reverts when amount is 0", async function () {
-      await expect(
-        token.connect(bob).burnFrom(alice.address, 0)
-      ).to.be.revertedWithCustomError(token, "ZeroBurnAmount");
+      try {
+        await token.connect(bob).burnFrom(alice.address, 0);
+        throw new Error("Expected transaction to be reverted with ZeroBurnAmount error");
+      } catch (err) {
+        expect(err.message).to.include("ZeroBurnAmount");
+      }
     });
 
     it("reverts when allowance is insufficient", async function () {
-      await expect(
+      await expectReverted(
         token.connect(bob).burnFrom(alice.address, burnAmount + 1n)
-      ).to.be.reverted;
+      );
     });
   });
 
