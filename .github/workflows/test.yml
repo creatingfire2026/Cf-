@@ -57,8 +57,13 @@ jobs:
         run: npm ci
 
       - name: npm audit (high and critical only)
-        # Informational – does not fail the build on moderate/low advisories
-        run: npm audit --audit-level=high || true
+        # Currently all high-severity advisories are in hardhat's transitive
+        # dependency on undici and can only be resolved by upgrading to
+        # hardhat v3 (a breaking change tracked in DEPLOYMENT.md R-6).
+        # Until that upgrade is made, cap at `--audit-level=critical` so the
+        # step still catches any newly introduced critical-severity findings
+        # without breaking on already-documented highs.
+        run: npm audit --audit-level=critical
 
   # ---------------------------------------------------------------------------
   # 3. Secret scanning (detect accidentally committed credentials)
