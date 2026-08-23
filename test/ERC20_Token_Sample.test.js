@@ -32,11 +32,14 @@ async function expectRevertedWithCustomError(promise, contract, errorName) {
           expect(decodedError.name).to.equal(errorName);
           return;
         }
-      } catch {
-        // If decoding fails, fall back to string search
+      } catch (decodeErr) {
+        // If decoding fails with error data present, it's likely an unexpected error
+        throw new Error(
+          `Failed to decode error. Expected "${errorName}" but got: ${err.message || err.reason || err.data}`
+        );
       }
     }
-    // Fall back to checking error message/reason fields
+    // Fall back to checking error message/reason fields if no data or contract
     const errorContent = [err.message, err.reason]
       .filter((val) => val != null)
       .join(" ");
