@@ -37,7 +37,11 @@ async function expectRevertedWithCustomError(promise, contract, errorName) {
         expect(decodedError.name).to.equal(errorName);
         return;
       } catch (decodeErr) {
-        // Re-throw if it's our own error, otherwise it's a parsing error
+        // Re-throw AssertionError to preserve test failure details
+        if (decodeErr.name === "AssertionError") {
+          throw decodeErr;
+        }
+        // Re-throw if it's our own error
         if (decodeErr.message?.includes("Failed to decode error")) {
           throw decodeErr;
         }
