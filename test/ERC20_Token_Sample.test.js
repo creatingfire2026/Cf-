@@ -51,7 +51,14 @@ async function expectRevertedWithCustomError(promise, contract, errorName) {
         );
       }
     }
-    // Fall back to checking error message/reason fields if no data or contract
+    // If we have a contract but no error data, we can't reliably decode the custom error
+    if (contract) {
+      throw new Error(
+        `Expected custom error "${errorName}" but no error data was available for decoding. ` +
+        `Got revert: ${err.message || err.reason || "unknown error"}`
+      );
+    }
+    // Fallback: if no contract provided, just check message/reason fields
     const errorContent = [err.message, err.reason]
       .filter((val) => val != null)
       .join(" ");
