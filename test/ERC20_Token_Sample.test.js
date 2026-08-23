@@ -150,7 +150,6 @@ describe("ERC20_Token_Sample", function () {
       
       const event = findEvent(receipt, token, "Transfer");
       
-      expect(event).to.exist;
       expect(event.args[0]).to.equal(deployer.address);
       expect(event.args[1]).to.equal(alice.address);
       expect(event.args[2]).to.equal(amount);
@@ -212,7 +211,6 @@ describe("ERC20_Token_Sample", function () {
       
       const event = findEvent(receipt, token, "TokensBurned");
       
-      expect(event).to.exist;
       expect(event.args[0]).to.equal(deployer.address);
       expect(event.args[1]).to.equal(burnAmount);
     });
@@ -224,7 +222,6 @@ describe("ERC20_Token_Sample", function () {
       
       const event = findEvent(receipt, token, "Transfer");
       
-      expect(event).to.exist;
       expect(event.args[0]).to.equal(deployer.address);
       expect(event.args[1]).to.equal(ethers.ZeroAddress);
       expect(event.args[2]).to.equal(burnAmount);
@@ -280,7 +277,6 @@ describe("ERC20_Token_Sample", function () {
       
       const event = findEvent(receipt, token, "TokensBurned");
       
-      expect(event).to.exist;
       expect(event.args[0]).to.equal(alice.address);
       expect(event.args[1]).to.equal(burnAmount);
     });
