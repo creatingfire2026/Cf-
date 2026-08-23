@@ -1,4 +1,5 @@
 {
+  "type": "module",
   "name": "erc20-token-sample",
   "version": "1.0.0",
   "description": "Production-ready ERC20 token with burn capability",
