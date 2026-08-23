@@ -14,6 +14,19 @@ async function expectReverted(promise) {
   }
 }
 
+// Helper function to find event in transaction receipt
+function findEvent(receipt, contract, eventName) {
+  return receipt.logs
+    .map((log) => {
+      try {
+        return contract.interface.parseLog(log);
+      } catch {
+        return null;
+      }
+    })
+    .find((parsed) => parsed?.name === eventName);
+}
+
 describe("ERC20_Token_Sample", function () {
   let token;
   let deployer, alice, bob;
@@ -77,15 +90,7 @@ describe("ERC20_Token_Sample", function () {
       const tx = await token.transfer(alice.address, amount);
       const receipt = await tx.wait();
       
-      const event = receipt.logs
-        .map((log) => {
-          try {
-            return token.interface.parseLog(log);
-          } catch {
-            return null;
-          }
-        })
-        .find((parsed) => parsed?.name === "Transfer");
+      const event = findEvent(receipt, token, "Transfer");
       
       expect(event).to.exist;
       expect(event.args[0]).to.equal(deployer.address);
@@ -147,15 +152,7 @@ describe("ERC20_Token_Sample", function () {
       const tx = await token.burnTokens(burnAmount);
       const receipt = await tx.wait();
       
-      const event = receipt.logs
-        .map((log) => {
-          try {
-            return token.interface.parseLog(log);
-          } catch {
-            return null;
-          }
-        })
-        .find((parsed) => parsed?.name === "TokensBurned");
+      const event = findEvent(receipt, token, "TokensBurned");
       
       expect(event).to.exist;
       expect(event.args[0]).to.equal(deployer.address);
@@ -167,15 +164,7 @@ describe("ERC20_Token_Sample", function () {
       const tx = await token.burnTokens(burnAmount);
       const receipt = await tx.wait();
       
-      const event = receipt.logs
-        .map((log) => {
-          try {
-            return token.interface.parseLog(log);
-          } catch {
-            return null;
-          }
-        })
-        .find((parsed) => parsed?.name === "Transfer");
+      const event = findEvent(receipt, token, "Transfer");
       
       expect(event).to.exist;
       expect(event.args[0]).to.equal(deployer.address);
@@ -186,8 +175,12 @@ describe("ERC20_Token_Sample", function () {
     it("reverts when amount is 0", async function () {
       try {
         await token.burnTokens(0);
-        throw new Error("Expected transaction to be reverted with ZeroBurnAmount error");
+        throw new Error("Expected transaction to be reverted");
       } catch (err) {
+        if (err.message === "Expected transaction to be reverted") {
+          throw err;
+        }
+        // Transaction was reverted, check for custom error
         expect(err.message).to.include("ZeroBurnAmount");
       }
     });
@@ -236,15 +229,7 @@ describe("ERC20_Token_Sample", function () {
       const tx = await token.connect(bob).burnFrom(alice.address, burnAmount);
       const receipt = await tx.wait();
       
-      const event = receipt.logs
-        .map((log) => {
-          try {
-            return token.interface.parseLog(log);
-          } catch {
-            return null;
-          }
-        })
-        .find((parsed) => parsed?.name === "TokensBurned");
+      const event = findEvent(receipt, token, "TokensBurned");
       
       expect(event).to.exist;
       expect(event.args[0]).to.equal(alice.address);
@@ -254,8 +239,12 @@ describe("ERC20_Token_Sample", function () {
     it("reverts when amount is 0", async function () {
       try {
         await token.connect(bob).burnFrom(alice.address, 0);
-        throw new Error("Expected transaction to be reverted with ZeroBurnAmount error");
+        throw new Error("Expected transaction to be reverted");
       } catch (err) {
+        if (err.message === "Expected transaction to be reverted") {
+          throw err;
+        }
+        // Transaction was reverted, check for custom error
         expect(err.message).to.include("ZeroBurnAmount");
       }
     });
