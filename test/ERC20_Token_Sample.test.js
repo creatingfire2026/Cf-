@@ -23,9 +23,11 @@ async function expectRevertedWithCustomError(promise, errorName) {
     if (err.message === "Expected transaction to be reverted") {
       throw err;
     }
-    // Transaction was reverted, check for custom error
-    const errorString = err.message || err.data || err.reason || "";
-    expect(errorString.toString()).to.include(errorName);
+    // Transaction was reverted, check for custom error in all relevant fields
+    const errorContent = [err.message, err.data, err.reason]
+      .filter((val) => val != null)
+      .join(" ");
+    expect(errorContent).to.include(errorName);
   }
 }
 
