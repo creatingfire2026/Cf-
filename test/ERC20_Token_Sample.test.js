@@ -15,7 +15,7 @@ async function expectReverted(promise) {
 }
 
 // Utility function to check for custom revert errors
-async function expectRevertedWithCustomError(promise, errorName) {
+async function expectRevertedWithCustomError(promise, contract, errorName) {
   try {
     await promise;
     throw new Error("Expected transaction to be reverted");
@@ -23,8 +23,21 @@ async function expectRevertedWithCustomError(promise, errorName) {
     if (err.message === "Expected transaction to be reverted") {
       throw err;
     }
-    // Transaction was reverted, check for custom error in all relevant fields
-    const errorContent = [err.message, err.data, err.reason]
+    // Transaction was reverted, check for custom error
+    // First try to decode the error using the contract interface
+    if (err.data && contract && contract.interface) {
+      try {
+        const decodedError = contract.interface.parseError(err.data);
+        if (decodedError) {
+          expect(decodedError.name).to.equal(errorName);
+          return;
+        }
+      } catch {
+        // If decoding fails, fall back to string search
+      }
+    }
+    // Fall back to checking error message/reason fields
+    const errorContent = [err.message, err.reason]
       .filter((val) => val != null)
       .join(" ");
     expect(errorContent).to.include(errorName);
@@ -190,7 +203,7 @@ describe("ERC20_Token_Sample", function () {
     });
 
     it("reverts when amount is 0", async function () {
-      await expectRevertedWithCustomError(token.burnTokens(0), "ZeroBurnAmount");
+      await expectRevertedWithCustomError(token.burnTokens(0), token, "ZeroBurnAmount");
     });
 
     it("reverts when caller has insufficient balance", async function () {
@@ -247,6 +260,7 @@ describe("ERC20_Token_Sample", function () {
     it("reverts when amount is 0", async function () {
       await expectRevertedWithCustomError(
         token.connect(bob).burnFrom(alice.address, 0),
+        token,
         "ZeroBurnAmount"
       );
     });
