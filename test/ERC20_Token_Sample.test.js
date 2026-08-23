@@ -58,7 +58,8 @@ async function expectRevertedWithCustomError(promise, contract, errorName) {
         `Got revert: ${err.message || err.reason || "unknown error"}`
       );
     }
-    // Fallback: if no contract provided, just check message/reason fields
+    // Fallback: if no contract provided, check message/reason fields
+    // This path is only used when contract is not provided to the helper
     const errorContent = [err.message, err.reason]
       .filter((val) => val != null)
       .join(" ");
