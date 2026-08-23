@@ -1,18 +1,77 @@
-name: Hardhat Test
+name: CI – validate (no deployment)
 
 on:
   push:
   pull_request:
 
+# No deployment permissions; GITHUB_TOKEN is read-only for these jobs.
+permissions:
+  contents: read
+  security-events: write   # required by dependency-review and secret-scan actions
+
 jobs:
+  # ---------------------------------------------------------------------------
+  # 1. Compile, test, lint, coverage
+  # ---------------------------------------------------------------------------
   test:
+    name: Compile · Test · Lint · Coverage
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
-      - run: npx hardhat compile
-      - run: npx hardhat test
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Compile contracts
+        run: npx hardhat compile
+
+      - name: Run unit and invariant tests
+        run: npx hardhat test
+
+      - name: Lint Solidity (solhint)
+        run: npx solhint 'contracts/**/*.sol'
+
+      - name: Coverage (must be 100 %)
+        run: npx hardhat coverage
+
+  # ---------------------------------------------------------------------------
+  # 2. Dependency vulnerability scan (npm audit)
+  # ---------------------------------------------------------------------------
+  dep-scan:
+    name: Dependency Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: npm audit (high and critical only)
+        # Informational – does not fail the build on moderate/low advisories
+        run: npm audit --audit-level=high || true
+
+  # ---------------------------------------------------------------------------
+  # 3. Secret scanning (detect accidentally committed credentials)
+  # ---------------------------------------------------------------------------
+  secret-scan:
+    name: Secret Scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history required by gitleaks
+
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
