@@ -14,6 +14,20 @@ async function expectReverted(promise) {
   }
 }
 
+// Utility function to check for custom revert errors
+async function expectRevertedWithCustomError(promise, errorName) {
+  try {
+    await promise;
+    throw new Error("Expected transaction to be reverted");
+  } catch (err) {
+    if (err.message === "Expected transaction to be reverted") {
+      throw err;
+    }
+    // Transaction was reverted, check for custom error
+    expect(err.message).to.include(errorName);
+  }
+}
+
 // Helper function to find event in transaction receipt
 function findEvent(receipt, contract, eventName) {
   return receipt.logs
@@ -173,16 +187,7 @@ describe("ERC20_Token_Sample", function () {
     });
 
     it("reverts when amount is 0", async function () {
-      try {
-        await token.burnTokens(0);
-        throw new Error("Expected transaction to be reverted");
-      } catch (err) {
-        if (err.message === "Expected transaction to be reverted") {
-          throw err;
-        }
-        // Transaction was reverted, check for custom error
-        expect(err.message).to.include("ZeroBurnAmount");
-      }
+      await expectRevertedWithCustomError(token.burnTokens(0), "ZeroBurnAmount");
     });
 
     it("reverts when caller has insufficient balance", async function () {
@@ -237,16 +242,10 @@ describe("ERC20_Token_Sample", function () {
     });
 
     it("reverts when amount is 0", async function () {
-      try {
-        await token.connect(bob).burnFrom(alice.address, 0);
-        throw new Error("Expected transaction to be reverted");
-      } catch (err) {
-        if (err.message === "Expected transaction to be reverted") {
-          throw err;
-        }
-        // Transaction was reverted, check for custom error
-        expect(err.message).to.include("ZeroBurnAmount");
-      }
+      await expectRevertedWithCustomError(
+        token.connect(bob).burnFrom(alice.address, 0),
+        "ZeroBurnAmount"
+      );
     });
 
     it("reverts when allowance is insufficient", async function () {
