@@ -69,7 +69,7 @@ async function expectRevertedWithCustomError(promise, contract, errorName) {
 
 // Helper function to find event in transaction receipt
 function findEvent(receipt, contract, eventName) {
-  return receipt.logs
+  const event = receipt.logs
     .map((log) => {
       try {
         return contract.interface.parseLog(log);
@@ -78,6 +78,11 @@ function findEvent(receipt, contract, eventName) {
       }
     })
     .find((parsed) => parsed?.name === eventName);
+
+  if (!event) {
+    throw new Error(`Event "${eventName}" not found in transaction receipt`);
+  }
+  return event;
 }
 
 describe("ERC20_Token_Sample", function () {
