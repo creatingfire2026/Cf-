@@ -1,0 +1,22 @@
+name = "creatingfire-orchestrator"
+main = "src/worker.js"
+compatibility_date = "2026-07-22"
+
+[[kv_namespaces]]
+binding = "AGENT_STATE"
+id = "REPLACE_WITH_AGENT_STATE_KV_ID"
+
+[[kv_namespaces]]
+binding = "TOKEN_CACHE"
+id = "REPLACE_WITH_TOKEN_CACHE_KV_ID"
+
+[[d1_databases]]
+binding = "THEODORE_DB"
+database_name = "theodore-db"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+
+[triggers]
+crons = ["0 * * * *"]
+
+[vars]
+NETWORK = "mainnet"
