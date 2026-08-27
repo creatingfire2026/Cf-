@@ -1,13 +1,16 @@
 {
   "name": "erc20-token-sample",
   "version": "1.0.0",
-  "description": "Production-ready ERC20 token with burn capability",
+  "description": "Fixed-supply ERC20 pilot with controlled Ethereum Sepolia deployment",
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",
     "coverage": "hardhat coverage",
     "lint": "solhint 'contracts/**/*.sol'",
-    "clean": "hardhat clean"
+    "scan:secrets": "node scripts/secret-scan.js",
+    "preflight:sepolia": "hardhat run scripts/preflight.js --network sepolia",
+    "clean": "hardhat clean",
+    "deploy:sepolia": "hardhat run scripts/deploy.js --network sepolia"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^3.0.0",
