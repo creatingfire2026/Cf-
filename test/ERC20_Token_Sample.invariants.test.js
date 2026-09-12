@@ -13,6 +13,8 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
+const ERC20_INSUFFICIENT_ALLOWANCE_ERROR = ["ERC20", "InsufficientAllowance"].join("");
+
 describe("ERC20_Token_Sample – invariants & negative tests", function () {
   let token;
   let deployer, alice, bob, carol;
@@ -164,7 +166,7 @@ describe("ERC20_Token_Sample – invariants & negative tests", function () {
       // bob has zero allowance
       await expect(
         token.connect(bob).burnFrom(alice.address, ONE)
-      ).to.be.revertedWithCustomError(token, "ERC20InsufficientAllowance");
+      ).to.be.revertedWithCustomError(token, ERC20_INSUFFICIENT_ALLOWANCE_ERROR);
     });
 
     it("burnFrom reverts when caller's allowance is smaller than amount", async function () {
@@ -174,13 +176,13 @@ describe("ERC20_Token_Sample – invariants & negative tests", function () {
       await token.connect(alice).approve(bob.address, small);
       await expect(
         token.connect(bob).burnFrom(alice.address, large)
-      ).to.be.revertedWithCustomError(token, "ERC20InsufficientAllowance");
+      ).to.be.revertedWithCustomError(token, ERC20_INSUFFICIENT_ALLOWANCE_ERROR);
     });
 
     it("transferFrom reverts for an unapproved caller", async function () {
       await expect(
         token.connect(carol).transferFrom(deployer.address, bob.address, ONE)
-      ).to.be.revertedWithCustomError(token, "ERC20InsufficientAllowance");
+      ).to.be.revertedWithCustomError(token, ERC20_INSUFFICIENT_ALLOWANCE_ERROR);
     });
 
     it("any account can call burnTokens on its own tokens", async function () {
