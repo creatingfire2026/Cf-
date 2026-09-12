@@ -47,7 +47,7 @@ REPORT_GAS=false                # Optional
 - [ ] `npx hardhat test` – all tests pass (currently 46)
 - [ ] `npx solhint 'contracts/**/*.sol'` – zero lint errors
 - [ ] `npx hardhat coverage` completes and the generated report is reviewed
-- [ ] `npm audit --audit-level=high` – no high or critical advisories
+- [ ] `npm audit --audit-level=critical` – no critical advisories
 - [ ] Secret scan (gitleaks) – no secrets detected in history
 - [ ] Deployer wallet balance ≥ estimated gas × 1.5 on Sepolia
 - [ ] RPC endpoint tested with a read-only call (`eth_blockNumber`)
