@@ -56,14 +56,46 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: npm audit (critical only)
-        # Currently all high-severity advisories are in hardhat's transitive
-        # dependency on undici and can only be resolved by upgrading to
-        # hardhat v3 (a breaking change tracked in DEPLOYMENT.md R-6).
-        # Until that upgrade is made, cap at `--audit-level=critical` so the
-        # step still catches any newly introduced critical-severity findings
-        # without breaking on already-documented highs.
-        run: npm audit --audit-level=critical
+      - name: npm audit (high+critical with explicit exceptions)
+        # The current high-severity findings are accepted transitive issues in
+        # the Hardhat v2 toolchain and are tracked in DEPLOYMENT.md R-6.
+        # Fail the build on any new high/critical advisory instead of
+        # suppressing the entire severity level.
+        run: |
+          npm audit --audit-level=high --json > npm-audit.json || true
+          node <<'NODE'
+          const fs = require("fs");
+          const report = JSON.parse(fs.readFileSync("npm-audit.json", "utf8"));
+          const allowlistedHighSources = new Set([
+            1113686, 1120654, 1123686, 1130589, 1130720, 1130736, 1138115,
+            1158521, 1158524, 1158527, 1158530, 1193726, 1193727,
+            1114638, 1114640, 1121245,
+          ]);
+          const unexpected = [];
+
+          for (const [pkg, info] of Object.entries(report.vulnerabilities || {})) {
+            for (const finding of info.via || []) {
+              if (!finding || typeof finding !== "object") continue;
+              if (finding.severity !== "high" && finding.severity !== "critical") continue;
+              if (finding.severity === "critical" || !allowlistedHighSources.has(finding.source)) {
+                unexpected.push({
+                  package: pkg,
+                  source: finding.source,
+                  severity: finding.severity,
+                  title: finding.title,
+                });
+              }
+            }
+          }
+
+          if (unexpected.length) {
+            console.error("Unexpected high/critical advisories detected:");
+            console.error(JSON.stringify(unexpected, null, 2));
+            process.exit(1);
+          }
+
+          console.log("Only documented allowlisted high-severity advisories remain.");
+          NODE
 
   # ---------------------------------------------------------------------------
   # 3. Secret scanning (detect accidentally committed credentials)
