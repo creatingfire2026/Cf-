@@ -9,12 +9,16 @@ const { TASK_COMPILE_SOLIDITY_GET_SOLC_BUILD } = require("hardhat/builtin-tasks/
 subtask(TASK_COMPILE_SOLIDITY_GET_SOLC_BUILD, async (args, hre, runSuper) => {
   try {
     return await runSuper(args);
-  } catch (_e) {
+  } catch (error) {
     const solcPath = require.resolve("solc/soljson");
     const solc = require("solc");
     const longVersion = solc.version().replace(".Emscripten.clang", "");
+    const version = longVersion.split("+")[0];
+    if (args.solcVersion !== version) {
+      throw error;
+    }
     return {
-      version: longVersion.split("+")[0],
+      version,
       longVersion,
       compilerPath: solcPath,
       isSolcJs: true,

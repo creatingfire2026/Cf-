@@ -23,7 +23,7 @@
 |---|---|
 | Node.js version | 22 LTS (matches CI) |
 | Hardhat version | 2.x (see `package.json`) |
-| Solidity compiler | 0.8.26 – 0.8.36 (locally bundled `solc` npm package satisfies this offline) |
+| Solidity compiler | 0.8.26 (locally bundled `solc@0.8.26` satisfies this offline) |
 | Network target | **Sepolia testnet only** – never mainnet without explicit owner decision |
 | RPC endpoint | A non-public Alchemy or Infura project URL for Sepolia |
 
@@ -105,8 +105,17 @@ This requires `ETHERSCAN_API_KEY` to be set in `.env`.
 Run these checks immediately after deployment (read-only, no transactions):
 
 ```bash
-# scripts/preflight.js is a non-transactional check (see scripts/deploy.js comments)
-npx hardhat run scripts/preflight.js --network sepolia
+npx hardhat console --network sepolia
+```
+
+```js
+const token = await ethers.getContractAt("ERC20_Token_Sample", "<deployed_address>");
+await token.name();
+await token.symbol();
+await token.decimals();
+await token.INITIAL_SUPPLY();
+await token.totalSupply();
+await token.balanceOf("<deployer_address>");
 ```
 
 Expected outputs to verify:
