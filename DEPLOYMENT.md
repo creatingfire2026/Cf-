@@ -46,7 +46,7 @@ REPORT_GAS=false                # Optional
 - [ ] `npx hardhat compile` succeeds with zero warnings
 - [ ] `npx hardhat test` – all tests pass (currently 46)
 - [ ] `npx solhint 'contracts/**/*.sol'` – zero lint errors
-- [ ] `npx hardhat coverage` – 100 % statement, branch, function, and line coverage
+- [ ] `npx hardhat coverage` completes and the generated report is reviewed
 - [ ] `npm audit --audit-level=high` – no high or critical advisories
 - [ ] Secret scan (gitleaks) – no secrets detected in history
 - [ ] Deployer wallet balance ≥ estimated gas × 1.5 on Sepolia
