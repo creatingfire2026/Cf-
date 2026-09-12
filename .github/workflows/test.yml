@@ -1,18 +1,114 @@
-name: Hardhat Test
+name: CI – validate (no deployment)
 
 on:
   push:
   pull_request:
 
+# No deployment permissions; GITHUB_TOKEN is read-only for these jobs.
+permissions:
+  contents: read
+  security-events: write   # required by dependency-review and secret-scan actions
+
 jobs:
+  # ---------------------------------------------------------------------------
+  # 1. Compile, test, lint, coverage
+  # ---------------------------------------------------------------------------
   test:
+    name: Compile · Test · Lint · Coverage
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
-      - run: npx hardhat compile
-      - run: npx hardhat test
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Compile contracts
+        run: npx hardhat compile
+
+      - name: Run unit and invariant tests
+        run: npx hardhat test
+
+      - name: Lint Solidity (solhint)
+        run: npx solhint 'contracts/**/*.sol'
+
+      - name: Coverage report
+        run: npx hardhat coverage
+
+  # ---------------------------------------------------------------------------
+  # 2. Dependency vulnerability scan (npm audit)
+  # ---------------------------------------------------------------------------
+  dep-scan:
+    name: Dependency Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: npm audit (high+critical with explicit exceptions)
+        # The current high-severity findings are accepted transitive issues in
+        # the Hardhat v2 toolchain and are tracked in DEPLOYMENT.md R-6.
+        # Fail the build on any new high/critical advisory instead of
+        # suppressing the entire severity level.
+        run: |
+          npm audit --audit-level=high --json > npm-audit.json || true
+          node <<'NODE'
+          const fs = require("fs");
+          const report = JSON.parse(fs.readFileSync("npm-audit.json", "utf8"));
+          const allowlistedHighSources = new Set([
+            1113686, 1120654, 1123686, 1130589, 1130720, 1130736, 1138115,
+            1158521, 1158524, 1158527, 1158530, 1193726, 1193727,
+            1114638, 1114640, 1121245,
+          ]);
+          const unexpected = [];
+
+          for (const [pkg, info] of Object.entries(report.vulnerabilities || {})) {
+            for (const finding of info.via || []) {
+              if (!finding || typeof finding !== "object") continue;
+              if (finding.severity !== "high" && finding.severity !== "critical") continue;
+              if (finding.severity === "critical" || !allowlistedHighSources.has(finding.source)) {
+                unexpected.push({
+                  package: pkg,
+                  source: finding.source,
+                  severity: finding.severity,
+                  title: finding.title,
+                });
+              }
+            }
+          }
+
+          if (unexpected.length) {
+            console.error("Unexpected high/critical advisories detected:");
+            console.error(JSON.stringify(unexpected, null, 2));
+            process.exit(1);
+          }
+
+          console.log("Only documented allowlisted high-severity advisories remain.");
+          NODE
+
+  # ---------------------------------------------------------------------------
+  # 3. Secret scanning (detect accidentally committed credentials)
+  # ---------------------------------------------------------------------------
+  secret-scan:
+    name: Secret Scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history required by gitleaks
+
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
