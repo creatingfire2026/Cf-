@@ -3,7 +3,7 @@ title = "Cf- Gitleaks configuration"
 [extend]
 useDefault = true
 
-[[allowlists]]
+[allowlist]
 description = "Allow OpenZeppelin ERC20 custom error names in Hardhat test assertions"
 paths = [
   '''^test/ERC20_Token_Sample\.test\.js$''',
