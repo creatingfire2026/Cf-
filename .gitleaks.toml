@@ -1,0 +1,14 @@
+title = "Cf- Gitleaks configuration"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Allow OpenZeppelin ERC20 custom error names in Hardhat test assertions"
+paths = [
+  '''^test/ERC20_Token_Sample\.test\.js$''',
+]
+regexTarget = "line"
+regexes = [
+  '''revertedWithCustomError\(token,\s*"ERC20(InvalidReceiver|InvalidSpender|InsufficientAllowance)"\)''',
+]

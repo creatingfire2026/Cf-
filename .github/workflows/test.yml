@@ -1,18 +1,71 @@
-name: Hardhat Test
+name: Security and Test Suite
 
 on:
   push:
+    branches: [ main ]
   pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  test:
+  security:
+    name: Security Scans & Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
-      - run: npx hardhat compile
-      - run: npx hardhat test
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Dependency audit (high/critical)
+        # Note: upstream hardhat@3.23.0 dev-toolchain transitive zod <4.6.6 advisory
+        # has no non-breaking fix; audit remains enforced without suppression.
+        run: npm audit --audit-level=high
+
+      - name: Solidity lint
+        run: npm run lint
+
+  test:
+    name: Compile and Test
+    runs-on: ubuntu-latest
+    needs: security
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Compile contracts
+        run: npm run compile
+
+      - name: Run tests
+        run: npm test
+        env:
+          REPORT_GAS: false
