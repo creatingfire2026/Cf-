@@ -8,6 +8,7 @@ description = "Allow OpenZeppelin ERC20 custom error names in Hardhat test asser
 paths = [
   '''^test/ERC20_Token_Sample\.test\.js$''',
 ]
+regexTarget = "line"
 regexes = [
   '''revertedWithCustomError\(token,\s*"ERC20(InvalidReceiver|InvalidSpender|InsufficientAllowance)"\)''',
 ]
